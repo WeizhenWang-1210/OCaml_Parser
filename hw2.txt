@@ -1,0 +1,43 @@
+I write make_parser in terms of make_matcher. For make_matcher to work, it 
+will have to choose an alternative list and check if it can find a prefix 
+matching the grammar; while we are trying to find a path of used rules that
+will generate our parse tree, we also need to start from an alternative 
+list of higher order-rule to see if we can match a frag. In both cases we 
+start from a higher order of the tree to dig deeper until we find terminals. 
+Therefore, it's natural to write make_parser's path finding part in terms 
+of make_matcher. Moreover, when we are building a tree, we are also traveling
+from the parent node to find a child node and its sibling. The direction is 
+also top to bottom.
+
+The naive parser can't handle a rule that has recursion. Take the following
+grammar as an example:
+
+let my_grammar = 
+  (Paragraph,
+   function
+   | Paragraph -> [[N Paragraph; N Sentence];[N Sentence];]
+   | Sentence -> [[N NPhrase ; N VPhrase; N NPhrase; T "."]]
+   | NPhrase -> [[N Noun]; [N Adj; N Noun]]
+   | VPhrase -> [[N Verb]; [N Adv; N Verb]]
+   | Noun -> [[T"I"];[T"you"];[T"Chocolate"];[T"coding"]]
+   | Verb -> [[T"kick"];[T"drink"];[T"eat"];[T"twist"]]
+   | Adj -> [[T"good"];[T"bad"];[T"perfect"];[T"mediocre"]]
+   | Adv -> [[T"meh"];[T"forcefully"];[T"delightly"];[T"smoothly"]]
+  )
+
+  This grammar, when applied to a make_matcher with a grag, will incur
+  stack overflow. Even if a fragment have only two sentences, the 
+  match_maker will keep trying to match a Paragraph to it first rule, which
+  is Paragraph -> [[N Paragraph; N Sentence]]. While it's natural to 
+  have a paragraph that have more than one sentence, our matcher can't 
+  match a paragraph with two sentences as a prefix, and therefore can't 
+  generate a corresponding parse tree.
+
+  In addition, since the matcher will return once it's find a match, it's 
+  not greedy enough to try to exhaust a fragment with a rule that is later
+  in the altlist(more to the right). Therefore, in case that a fragment
+  can be parsed in different ways, we can only generate a parse tree according 
+  to the first rule in the same-level altlist.
+
+  
+
